@@ -606,44 +606,84 @@
         return div.innerHTML;
       }
 
+      // async function kirimPesan() {
+      //   const text = promptInput.value.trim();
+      //   if (!text) return;
+
+      //   // Reset textarea height after sending
+      //   promptInput.style.height = 'auto';
+
+      //   tambahPesanUser(text);
+      //   saveMessage('user', text);
+      //   promptInput.value = '';
+      //   sendBtn.disabled = true;
+
+      //   const typing = document.createElement('div');
+      //   typing.className = 'message bot typing';
+      //   typing.innerHTML = 'Hildan AI lagi mikir nih <span></span><span></span><span></span>';
+      //   chatContainer.appendChild(typing);
+      //   chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      //   try {
+      //     const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
+      //       method: 'POST',
+      //       headers: { 'Content-Type': 'application/json' },
+      //       body: JSON.stringify({ prompt: text })
+      //     });
+      //     if (!res.ok) throw new Error();
+      //     const data = await res.json();
+      //     const jawaban = data.result || "Waduh, Hildan AI lagi bingung nih 😅";
+      //     if (typing.parentNode) chatContainer.removeChild(typing);
+      //     tambahPesanBot(jawaban);
+      //     saveMessage('bot', jawaban);
+      //   } catch (err) {
+      //     if (typing.parentNode) chatContainer.removeChild(typing);
+      //     tambahPesanBot("Server lagi down nih bro/sis 😭 Coba lagi bentar ya, Hildan AI tetep nunggu kok! ❤️");
+      //   } finally {
+      //     sendBtn.disabled = false;
+      //     promptInput.focus();
+      //   }
+      // }
+
       async function kirimPesan() {
-        const text = promptInput.value.trim();
-        if (!text) return;
+  const text = promptInput.value.trim();
+  if (!text) return;
 
-        // Reset textarea height after sending
-        promptInput.style.height = 'auto';
+  tambahPesanUser(text);
+  saveMessage('user', text);
+  promptInput.value = '';
+  sendBtn.disabled = true;
 
-        tambahPesanUser(text);
-        saveMessage('user', text);
-        promptInput.value = '';
-        sendBtn.disabled = true;
+  const typing = document.createElement('div');
+  typing.className = 'message bot typing';
+  typing.innerHTML = 'Hildan AI lagi mikir nih <span></span><span></span><span></span>';
+  chatContainer.appendChild(typing);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
 
-        const typing = document.createElement('div');
-        typing.className = 'message bot typing';
-        typing.innerHTML = 'Hildan AI lagi mikir nih <span></span><span></span><span></span>';
-        chatContainer.appendChild(typing);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+  try {
+    const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: text })
+    });
 
-        try {
-          const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: text })
-          });
-          if (!res.ok) throw new Error();
-          const data = await res.json();
-          const jawaban = data.result || "Waduh, Hildan AI lagi bingung nih 😅";
-          if (typing.parentNode) chatContainer.removeChild(typing);
-          tambahPesanBot(jawaban);
-          saveMessage('bot', jawaban);
-        } catch (err) {
-          if (typing.parentNode) chatContainer.removeChild(typing);
-          tambahPesanBot("Server lagi down nih bro/sis 😭 Coba lagi bentar ya, Hildan AI tetep nunggu kok! ❤️");
-        } finally {
-          sendBtn.disabled = false;
-          promptInput.focus();
-        }
-      }
+    if (!res.ok) throw new Error('Network response was not ok');
+
+    const data = await res.json();
+    if (typing.parentNode) chatContainer.removeChild(typing);
+    
+    tambahPesanBot(data.result || data.error || "Gak ada respon nih.");
+    saveMessage('bot', data.result || data.error);
+    
+  } catch (err) {
+    if (typing.parentNode) chatContainer.removeChild(typing);
+    tambahPesanBot("Server lagi down nih bro/sis 😭 Coba cek koneksi atau API Key Groq lu.");
+    console.error("Fetch Error:", err);
+  } finally {
+    sendBtn.disabled = false;
+    promptInput.focus();
+  }
+}
 
       // DEVICE DETECTION untuk Enter key behavior
       function isMobileDevice() {
@@ -704,4 +744,5 @@
 
 
 </html>
+
 
