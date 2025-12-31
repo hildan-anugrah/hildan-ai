@@ -457,21 +457,14 @@
       const menuBtn = document.getElementById('menu-btn');
 
       const STORAGE_KEY = 'hildan_ai_chats';
-      const MAX_CHATS = 30;
-      const MAX_MESSAGES = 200;
+      const MAX_CHATS = 50; // Ditambah biarpun banyak chat tetap aman
 
       let chats = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
       let currentChatId = null;
 
-      function optimizeStorage() {
-        if (chats.length > MAX_CHATS) chats = chats.slice(0, MAX_CHATS);
-        chats.forEach(chat => {
-          if (chat.messages.length > MAX_MESSAGES) chat.messages = chat.messages.slice(-MAX_MESSAGES);
-        });
-      }
-
+      // Fungsi simpan ke LocalStorage tanpa memotong isi pesan (hanya memotong jumlah chat)
       function saveChats() {
-        optimizeStorage();
+        if (chats.length > MAX_CHATS) chats = chats.slice(0, MAX_CHATS);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
         renderHistory();
       }
@@ -485,24 +478,22 @@
       }
 
       function loadChat(id) {
-        if (currentChatId === id) return;
-
         currentChatId = id;
         const chat = chats.find(c => c.id === id);
         if (!chat) return;
 
         chatContainer.innerHTML = '';
 
-        chat.messages.forEach(msg => {
-          if (msg.sender === 'user') tambahPesanUser(msg.text);
-          else tambahPesanBot(msg.text);
-        });
-
         if (chat.messages.length === 0) {
           const greeting = document.createElement('div');
           greeting.className = 'message bot';
-          greeting.innerHTML = "Yo bro/sis! 👋 Gue Hildan AI, mahasiswa SI semester 3 yang lagi excited belajar coding & AI nih 🤖<br>Ada yang bisa gue bantu hari ini? Cerita aja apa aja, gue dengerin kok! 😊";
+          greeting.innerHTML = "Yo bro/sis! 👋 Gue Hildan AI, mahasiswa SI semester 3. Cerita aja apa aja, gue dengerin kok! 😊";
           chatContainer.appendChild(greeting);
+        } else {
+          chat.messages.forEach(msg => {
+            if (msg.sender === 'user') tambahPesanUser(msg.text);
+            else tambahPesanBot(msg.text);
+          });
         }
 
         renderHistory();
@@ -516,11 +507,7 @@
           const item = document.createElement('div');
           item.className = 'history-item' + (chat.id === currentChatId ? ' active' : '');
 
-          let title = "Chat Baru";
-          if (chat.messages.length > 0) {
-            const firstUser = chat.messages.find(m => m.sender === 'user');
-            if (firstUser) title = firstUser.text.substring(0, 35) + (firstUser.text.length > 35 ? '...' : '');
-          }
+          let title = chat.title || "Chat Baru";
           item.textContent = title;
           item.onclick = () => {
             loadChat(chat.id);
@@ -531,12 +518,12 @@
       }
 
       function saveMessage(sender, text) {
-        if (!currentChatId) return;
         const chat = chats.find(c => c.id === currentChatId);
         if (chat) {
           chat.messages.push({ sender, text });
-          if (chat.messages.length === 1 && sender === 'user') {
-            chat.title = text.substring(0, 35) + (text.length > 35 ? '...' : '');
+          // Update judul chat berdasarkan pesan pertama user
+          if (sender === 'user' && chat.messages.filter(m => m.sender === 'user').length === 1) {
+            chat.title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
           }
           saveChats();
         }
@@ -554,50 +541,51 @@
         const div = document.createElement('div');
         div.className = 'message bot';
 
-        let content = '';
+        // Regex untuk mendeteksi Markdown Code Blocks (resisten terhadap teks panjang)
         const codeRegex = /```(\w+)?\n([\s\S]*?)```/g;
-        let lastIndex = 0, match;
+        let content = '';
+        let lastIndex = 0;
+        let match;
 
         while ((match = codeRegex.exec(text)) !== null) {
+          // Tambahkan teks biasa sebelum blok kode
           if (match.index > lastIndex) {
-            content += escapeHtml(text.slice(lastIndex, match.index)).replace(/\n/g, '<br>') + '<br><br>';
+            content += escapeHtml(text.slice(lastIndex, match.index)).replace(/\n/g, '<br>');
           }
 
-          const lang = match[1] ? match[1].toLowerCase() : 'javascript';
-          const rawCode = match[2];
-
-          const highlighted = Prism.highlight(rawCode, Prism.languages[lang] || Prism.languages.markup, lang);
+          const lang = match[1] || 'javascript';
+          const rawCode = match[2].trim();
+          const highlighted = Prism.highlight(rawCode, Prism.languages[lang] || Prism.languages.javascript, lang);
 
           content += `
-            <div class="code-block">
-              <pre><code class="language-${lang}">${highlighted}</code></pre>
-              <button class="copy-btn">Copy</button>
-              <span class="copy-feedback">Copied!</span>
-            </div><br>`;
+                    <div class="code-block">
+                        <pre><code class="language-${lang}">${highlighted}</code></pre>
+                        <button class="copy-btn">Copy</button>
+                        <span class="copy-feedback">Copied!</span>
+                    </div>`;
 
           lastIndex = codeRegex.lastIndex;
         }
 
+        // Tambahkan sisa teks setelah blok kode terakhir
         if (lastIndex < text.length) {
           content += escapeHtml(text.slice(lastIndex)).replace(/\n/g, '<br>');
         }
 
-        if (!content.includes('code-block')) {
-          content = escapeHtml(text).replace(/\n/g, '<br>');
-        }
-
-        div.innerHTML = content;
+        div.innerHTML = content || escapeHtml(text).replace(/\n/g, '<br>');
         chatContainer.appendChild(div);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
 
+        // Handler tombol Copy
         div.querySelectorAll('.copy-btn').forEach(btn => {
           btn.onclick = async () => {
-            const codeText = btn.previousElementSibling.querySelector('code').textContent;
-            await navigator.clipboard.writeText(codeText);
+            const code = btn.previousElementSibling.innerText;
+            await navigator.clipboard.writeText(code);
             btn.nextElementSibling.style.opacity = '1';
             setTimeout(() => btn.nextElementSibling.style.opacity = '0', 1500);
           };
         });
+
+        chatContainer.scrollTop = chatContainer.scrollHeight;
       }
 
       function escapeHtml(text) {
@@ -606,136 +594,73 @@
         return div.innerHTML;
       }
 
-      // async function kirimPesan() {
-      //   const text = promptInput.value.trim();
-      //   if (!text) return;
-
-      //   // Reset textarea height after sending
-      //   promptInput.style.height = 'auto';
-
-      //   tambahPesanUser(text);
-      //   saveMessage('user', text);
-      //   promptInput.value = '';
-      //   sendBtn.disabled = true;
-
-      //   const typing = document.createElement('div');
-      //   typing.className = 'message bot typing';
-      //   typing.innerHTML = 'Hildan AI lagi mikir nih <span></span><span></span><span></span>';
-      //   chatContainer.appendChild(typing);
-      //   chatContainer.scrollTop = chatContainer.scrollHeight;
-
-      //   try {
-      //     const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
-      //       method: 'POST',
-      //       headers: { 'Content-Type': 'application/json' },
-      //       body: JSON.stringify({ prompt: text })
-      //     });
-      //     if (!res.ok) throw new Error();
-      //     const data = await res.json();
-      //     const jawaban = data.result || "Waduh, Hildan AI lagi bingung nih 😅";
-      //     if (typing.parentNode) chatContainer.removeChild(typing);
-      //     tambahPesanBot(jawaban);
-      //     saveMessage('bot', jawaban);
-      //   } catch (err) {
-      //     if (typing.parentNode) chatContainer.removeChild(typing);
-      //     tambahPesanBot("Server lagi down nih bro/sis 😭 Coba lagi bentar ya, Hildan AI tetep nunggu kok! ❤️");
-      //   } finally {
-      //     sendBtn.disabled = false;
-      //     promptInput.focus();
-      //   }
-      // }
-
       async function kirimPesan() {
-  const text = promptInput.value.trim();
-  if (!text) return;
+        const text = promptInput.value.trim();
+        if (!text || sendBtn.disabled) return;
 
-  tambahPesanUser(text);
-  saveMessage('user', text);
-  promptInput.value = '';
-  sendBtn.disabled = true;
+        tambahPesanUser(text);
+        saveMessage('user', text);
 
-  const typing = document.createElement('div');
-  typing.className = 'message bot typing';
-  typing.innerHTML = 'Hildan AI lagi mikir nih <span></span><span></span><span></span>';
-  chatContainer.appendChild(typing);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-
-  try {
-    const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: text })
-    });
-
-    if (!res.ok) throw new Error('Network response was not ok');
-
-    const data = await res.json();
-    if (typing.parentNode) chatContainer.removeChild(typing);
-    
-    tambahPesanBot(data.result || data.error || "Gak ada respon nih.");
-    saveMessage('bot', data.result || data.error);
-    
-  } catch (err) {
-    if (typing.parentNode) chatContainer.removeChild(typing);
-    tambahPesanBot("Server lagi down nih bro/sis 😭 Coba cek koneksi atau API Key Groq lu.");
-    console.error("Fetch Error:", err);
-  } finally {
-    sendBtn.disabled = false;
-    promptInput.focus();
-  }
-}
-
-      // DEVICE DETECTION untuk Enter key behavior
-      function isMobileDevice() {
-        const userAgent = navigator.userAgent.toLowerCase();
-        const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const isSmallScreen = window.innerWidth <= 768;
-        return (isMobileUA || isTouchDevice) && isSmallScreen;
-      }
-
-      // AUTO-RESIZE TEXTAREA
-      function autoResizeTextarea() {
+        promptInput.value = '';
         promptInput.style.height = 'auto';
-        promptInput.style.height = Math.min(promptInput.scrollHeight, 150) + 'px';
+        sendBtn.disabled = true;
+
+        const typing = document.createElement('div');
+        typing.className = 'message bot typing';
+        typing.id = 'typing-indicator';
+        typing.innerHTML = 'Hildan lagi ngetik... <span></span><span></span><span></span>';
+        chatContainer.appendChild(typing);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        try {
+          const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: text })
+          });
+
+          const data = await res.json();
+
+          // Hapus indikator ngetik
+          const indicator = document.getElementById('typing-indicator');
+          if (indicator) indicator.remove();
+
+          if (res.ok) {
+            const jawaban = data.result;
+            tambahPesanBot(jawaban);
+            saveMessage('bot', jawaban);
+          } else {
+            tambahPesanBot("Error: " + (data.error || "Ada masalah di server."));
+          }
+
+        } catch (err) {
+          const indicator = document.getElementById('typing-indicator');
+          if (indicator) indicator.remove();
+          tambahPesanBot("Waduh, koneksi putus atau server mati nih bro. Coba lagi ya.");
+        } finally {
+          sendBtn.disabled = false;
+          promptInput.focus();
+        }
       }
 
-      promptInput.addEventListener('input', autoResizeTextarea);
+      // Event Listeners
+      promptInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
 
-      // ENTER KEY: Berbeda untuk Desktop vs Mobile
-      promptInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          const isMobile = isMobileDevice();
-
-          if (isMobile) {
-            // MOBILE: Enter = baris baru (tidak kirim pesan)
-            // User harus tekan tombol Kirim untuk mengirim
-            // Tidak perlu preventDefault, biarkan behavior default
-          } else {
-            // DESKTOP/LAPTOP: Enter = kirim pesan, Shift+Enter = baris baru
-            if (!e.shiftKey) {
-              e.preventDefault();
-              kirimPesan();
-            }
-          }
+      promptInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
+          e.preventDefault();
+          kirimPesan();
         }
       });
 
+      sendBtn.onclick = kirimPesan;
       newChatBtn.onclick = createNewChat;
       menuBtn.onclick = () => sidebar.classList.toggle('open');
 
-      sendBtn.onclick = (e) => {
-        const rect = sendBtn.getBoundingClientRect();
-        const ripple = document.createElement('span');
-        ripple.classList.add('ripple');
-        ripple.style.left = (e.clientX - rect.left) + 'px';
-        ripple.style.top = (e.clientY - rect.top) + 'px';
-        sendBtn.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 600);
-        kirimPesan();
-      };
-
-      optimizeStorage();
+      // Initial Load
       if (chats.length === 0) createNewChat();
       else loadChat(chats[0].id);
     });
@@ -744,5 +669,3 @@
 
 
 </html>
-
-
