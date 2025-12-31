@@ -625,7 +625,7 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
 
         try {
-          const res = await fetch('http://localhost:3000/generate-text', {
+          const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: text })
@@ -704,3 +704,4 @@
 
 
 </html>
+
