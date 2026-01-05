@@ -10,7 +10,7 @@
   <meta property="og:title" content="Hildan AI - Chatbot Keren Indonesia" />
   <meta property="og:description" content="Chat apa aja sama Hildan AI! Santai, lucu, dan siap bantu. Coba yuk~" />
   <meta property="og:image" content="https://via.placeholder.com/1200x630/000000/00D4AA?text=Hildan+AI" />
-  <meta property="og:url" content="https://hildan-ai.vercel.app" />
+  <meta property="og:url" content="https://hildan-ui.vercel.app" />
   <meta property="og:type" content="website" />
   <meta name="theme-color" content="#00D4AA" />
   <style>
@@ -68,7 +68,17 @@
       background: rgba(255, 255, 255, 0.9);
       border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     }
-    #menu-btn { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: background 0.2s; }
+    #menu-btn { 
+      background: none; 
+      border: none; 
+      color: var(--text); 
+      font-size: 1.5rem; 
+      cursor: pointer; 
+      padding: 0.5rem; 
+      border-radius: 8px; 
+      transition: background 0.2s; 
+      display: none;
+    }
     #menu-btn:hover { background: rgba(255, 255, 255, 0.1); }
     header h1 { font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 600; color: var(--primary); }
     #app-container { flex: 1; display: flex; overflow: hidden; position: relative; }
@@ -81,6 +91,7 @@
       width: 280px; max-width: 90vw; background: var(--sidebar-bg); backdrop-filter: blur(20px);
       border-right: 1px solid var(--border-accent); display: flex; flex-direction: column;
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 999; position: relative;
+      height: 100%;
     }
     #sidebar-close {
       display: none; position: absolute; top: 12px; right: 12px; background: none; border: none;
@@ -136,13 +147,14 @@
     .delete-btn { color: var(--text-muted); font-size: 1.1rem; padding: 8px; border-radius: 8px; opacity: 0; transition: opacity 0.2s, color 0.2s; }
     .history-item:hover .delete-btn { opacity: 1; }
     .delete-btn:hover { color: var(--danger); background: rgba(231, 76, 60, 0.15); }
-    #main { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
+    #main { flex: 1; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
     #chat-container {
       flex: 1; overflow-y: auto; padding: 2rem 1.5rem; display: flex; flex-direction: column;
       gap: 1.5rem; scroll-behavior: smooth; position: relative;
     }
     .message-wrapper {
       position: relative; display: flex; align-items: flex-start; gap: 12px; max-width: 80%;
+      opacity: 0; animation: fadeInMessage 0.6s ease-out forwards;
     }
     .message-wrapper.user-wrapper { align-self: flex-end; flex-direction: row-reverse; }
     .avatar {
@@ -152,8 +164,8 @@
     .user-avatar { background: var(--primary-dark); color: #fff; }
     .message {
       flex: 1; padding: 16px 20px; border-radius: 24px; line-height: 1.6; word-wrap: break-word;
-      white-space: pre-wrap; animation: fadeInMessage 0.6s ease-out; font-size: clamp(0.95rem, 2vw, 1.05rem);
-      opacity: 0; animation-fill-mode: forwards; position: relative;
+      white-space: pre-wrap; font-size: clamp(0.95rem, 2vw, 1.05rem);
+      position: relative;
     }
     @keyframes fadeInMessage { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     .user { align-self: flex-end; background: var(--primary); color: #000000; border-bottom-right-radius: 8px; }
@@ -203,19 +215,21 @@
     @keyframes typingDots { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-10px); opacity: 1; } }
     #input-area {
       display: flex; padding: 1rem; background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(20px);
-      gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); min-height: 84px;
     }
     [data-theme="light"] #input-area { background: rgba(255, 255, 255, 0.9); border-top: 1px solid rgba(0, 0, 0, 0.08); }
     #prompt {
       flex: 1; padding: 16px 20px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 30px;
       background: rgba(25, 30, 40, 0.8); color: #fff; font-size: clamp(0.95rem, 2vw, 1rem);
       outline: none; transition: 0.3s; resize: none; overflow-y: auto; min-height: 56px; max-height: 160px; line-height: 1.5;
+      font-family: inherit;
     }
     [data-theme="light"] #prompt { background: rgba(240, 245, 250, 0.9); color: #000; border-color: rgba(0, 0, 0, 0.15); }
     #prompt:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3); }
     #send-btn {
       padding: 0 24px; background: var(--primary); color: #000; border: none; border-radius: 30px;
       font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s;
+      height: 56px; align-self: flex-end;
     }
     #send-btn:hover { background: var(--primary-dark); transform: scale(1.05); }
     #back-to-bottom {
@@ -249,6 +263,8 @@
       .message-wrapper { max-width: 92%; }
       #chat-container { padding: 1.5rem 1rem; }
       #back-to-bottom { bottom: 90px; right: 15px; }
+      #send-btn { padding: 0 20px; }
+      #prompt { padding: 14px 16px; }
     }
   </style>
 </head>
@@ -318,170 +334,283 @@
       const importBtn = document.getElementById('import-chats');
       const clearAllBtn = document.getElementById('clear-all');
       const importInput = document.getElementById('import-input');
+      
       const STORAGE_KEY = 'hildan_ai_chats';
       const THEME_KEY = 'hildan_ai_theme';
       const MAX_CHATS = 50;
       const SCROLL_THRESHOLD = 150;
+      
       let chats = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
       let currentChatId = null;
       let isNearBottom = true;
+      let isSending = false;
+
+      // Theme initialization
       const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
       document.body.dataset.theme = savedTheme;
       themeSwitch.checked = savedTheme === 'dark';
+      
       themeSwitch.addEventListener('change', () => {
         const newTheme = themeSwitch.checked ? 'dark' : 'light';
         document.body.dataset.theme = newTheme;
         localStorage.setItem(THEME_KEY, newTheme);
       });
+
+      // Sidebar management
       function toggleSidebar() {
         sidebar.classList.toggle('open');
         overlay.classList.toggle('open');
       }
+
       function closeSidebar() {
         sidebar.classList.remove('open');
         overlay.classList.remove('open');
       }
-      settingsBtn.onclick = () => settingsMenu.classList.toggle('open');
-      if (window.innerWidth <= 1023) {
-        menuBtn.onclick = toggleSidebar;
-        sidebarClose.onclick = closeSidebar;
-        overlay.onclick = closeSidebar;
+
+      function setupSidebar() {
+        const isMobile = window.innerWidth <= 1023;
+        
+        if (isMobile) {
+          menuBtn.style.display = 'block';
+          sidebar.classList.remove('open');
+          
+          menuBtn.onclick = toggleSidebar;
+          sidebarClose.onclick = closeSidebar;
+          overlay.onclick = closeSidebar;
+          
+          // Close sidebar when clicking on chat items on mobile
+          document.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', closeSidebar);
+          });
+        } else {
+          menuBtn.style.display = 'none';
+          sidebar.classList.add('open');
+          
+          // Remove mobile event listeners
+          menuBtn.onclick = null;
+          sidebarClose.onclick = null;
+          overlay.onclick = null;
+        }
       }
+
+      // Settings menu
+      settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsMenu.classList.toggle('open');
+      });
+
+      // Close settings when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
+          settingsMenu.classList.remove('open');
+        }
+      });
+
+      // Scroll management
       function checkScrollPosition() {
         const scrollTop = chatContainer.scrollTop;
         const scrollHeight = chatContainer.scrollHeight;
         const clientHeight = chatContainer.clientHeight;
-        if (scrollHeight - scrollTop - clientHeight < SCROLL_THRESHOLD) {
-          isNearBottom = true;
+        
+        isNearBottom = scrollHeight - scrollTop - clientHeight < SCROLL_THRESHOLD;
+        
+        if (isNearBottom) {
           backToBottomBtn.classList.remove('show');
         } else {
-          isNearBottom = false;
           backToBottomBtn.classList.add('show');
         }
       }
+
       function scrollToBottom(smooth = true) {
         if (smooth) {
           chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
         } else {
           chatContainer.scrollTop = chatContainer.scrollHeight;
         }
+        isNearBottom = true;
+        backToBottomBtn.classList.remove('show');
       }
-      function appendMessageAndScroll() {
-        if (isNearBottom) {
-          setTimeout(() => scrollToBottom(true), 100);
-        }
-      }
+
       chatContainer.addEventListener('scroll', checkScrollPosition);
-      backToBottomBtn.onclick = () => scrollToBottom(true);
+      backToBottomBtn.addEventListener('click', () => scrollToBottom(true));
+
+      // Data management
       function saveChats() {
-        if (chats.length > MAX_CHATS) chats = chats.slice(0, MAX_CHATS);
+        if (chats.length > MAX_CHATS) {
+          chats = chats.slice(0, MAX_CHATS);
+        }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
         renderHistory();
       }
+
       function createNewChat() {
-        const newChat = { id: Date.now(), title: "Chat Baru", messages: [] };
+        const newChat = { 
+          id: Date.now(), 
+          title: "Chat Baru", 
+          messages: [],
+          createdAt: new Date().toISOString()
+        };
         chats.unshift(newChat);
         saveChats();
         loadChat(newChat.id);
+        promptInput.focus();
       }
+
       function deleteChat(id) {
         if (!confirm("Hapus chat ini?")) return;
+        
         chats = chats.filter(c => c.id !== id);
+        
         if (currentChatId === id) {
-          currentChatId = null;
-          chatContainer.innerHTML = '';
-          if (chats.length > 0) loadChat(chats[0].id);
-          else createNewChat();
+          if (chats.length > 0) {
+            loadChat(chats[0].id);
+          } else {
+            createNewChat();
+          }
         }
+        
         saveChats();
       }
+
       function deleteAllChats() {
         if (!confirm("Hapus SEMUA chat? Tindakan ini tidak bisa dibatalkan.")) return;
+        
         chats = [];
-        localStorage.removeItem(STORAGE_KEY);
         currentChatId = null;
         chatContainer.innerHTML = '';
+        saveChats();
         createNewChat();
       }
-      function exportCurrentChat() {
+
+      // Export/Import functions
+      exportCurrentBtn.addEventListener('click', () => {
         const chat = chats.find(c => c.id === currentChatId);
-        if (!chat) return;
+        if (!chat || chat.messages.length === 0) {
+          alert("Tidak ada chat untuk diexport.");
+          return;
+        }
+        
         const data = JSON.stringify(chat, null, 2);
         const blob = new Blob([data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `hildan-ai-chat-${chat.title?.replace(/[^a-z0-9]/gi, '-') || 'baru'}.json`;
+        a.download = `hildan-chat-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      }
-      function exportAllChats() {
+      });
+
+      exportAllBtn.addEventListener('click', () => {
         if (chats.length === 0) {
           alert("Belum ada chat untuk diexport.");
           return;
         }
+        
         const data = JSON.stringify(chats, null, 2);
         const blob = new Blob([data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'hildan-ai-all-chats.json';
+        a.download = `hildan-all-chats-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      }
-      function importChats(event) {
+      });
+
+      importBtn.addEventListener('click', () => {
+        importInput.click();
+      });
+
+      importInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (!file) return;
+
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
             const imported = JSON.parse(e.target.result);
+            let newChats = [];
+            
             if (Array.isArray(imported)) {
-              if (!confirm(`Import ${imported.length} chat? Ini akan menggantikan semua chat saat ini.`)) return;
-              chats = imported;
-              currentChatId = chats[0]?.id || null;
+              newChats = imported;
             } else {
-              imported.id = Date.now();
-              chats.unshift(imported);
-              currentChatId = imported.id;
+              newChats = [imported];
             }
+
+            if (!confirm(`Import ${newChats.length} chat?`)) {
+              importInput.value = '';
+              return;
+            }
+
+            // Add imported chats
+            newChats.forEach(chat => {
+              chat.id = Date.now() + Math.random(); // Ensure unique ID
+              chat.createdAt = chat.createdAt || new Date().toISOString();
+              chats.unshift(chat);
+            });
+
             saveChats();
-            loadChat(currentChatId || chats[0].id);
+            if (newChats.length > 0) {
+              loadChat(newChats[0].id);
+            }
             alert("Import berhasil!");
           } catch (err) {
             alert("File JSON tidak valid.");
           }
+          importInput.value = '';
         };
         reader.readAsText(file);
-        importInput.value = '';
-      }
-      function getLastUserPrompt() {
+      });
+
+      clearAllBtn.addEventListener('click', deleteAllChats);
+
+      // Message handling
+      function getLastUserMessage() {
         const chat = chats.find(c => c.id === currentChatId);
-        if (!chat) return '';
+        if (!chat) return null;
+        
         for (let i = chat.messages.length - 1; i >= 0; i--) {
-          if (chat.messages[i].sender === 'user') return chat.messages[i].text;
+          if (chat.messages[i].sender === 'user') return chat.messages[i];
         }
-        return '';
+        return null;
       }
+
       function loadChat(id) {
         currentChatId = id;
         const chat = chats.find(c => c.id === id);
-        if (!chat) return;
+        
+        if (!chat) {
+          if (chats.length > 0) {
+            loadChat(chats[0].id);
+          } else {
+            createNewChat();
+          }
+          return;
+        }
+
         chatContainer.innerHTML = '';
+        
         if (chat.messages.length === 0) {
           addGreetingMessage();
         } else {
           chat.messages.forEach(msg => {
-            if (msg.sender === 'user') addUserMessage(msg.text, msg.id);
-            else addBotMessage(msg.text, msg.id);
+            if (msg.sender === 'user') {
+              addUserMessage(msg.text, msg.id, false);
+            } else {
+              addBotMessage(msg.text, msg.id, false);
+            }
           });
         }
+        
         renderHistory();
         promptInput.focus();
-        scrollToBottom(false);
+        setTimeout(() => scrollToBottom(false), 100);
         checkScrollPosition();
-        if (window.innerWidth <= 1023) closeSidebar();
       }
+
       function addGreetingMessage() {
         const wrapper = document.createElement('div');
         wrapper.className = 'message-wrapper';
@@ -493,30 +622,42 @@
         `;
         chatContainer.appendChild(wrapper);
       }
+
       function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
       }
-      function addUserMessage(text, msgId = Date.now()) {
+
+      function addUserMessage(text, msgId = Date.now(), saveToHistory = true) {
         const wrapper = document.createElement('div');
         wrapper.className = 'message-wrapper user-wrapper';
         wrapper.dataset.msgId = msgId;
+        
         const escapedText = escapeHtml(text);
         wrapper.innerHTML = `
           <div class="avatar user-avatar"><i class="fas fa-user"></i></div>
           <div class="message user" data-original-text="${escapedText.replace(/"/g, '&quot;')}">${escapedText}</div>
         `;
+        
         wrapper.querySelector('.message').addEventListener('click', () => startEdit(wrapper));
         chatContainer.appendChild(wrapper);
+        
+        if (saveToHistory) {
+          saveMessage('user', text, msgId);
+        }
+        
         appendMessageAndScroll();
       }
-      function addBotMessage(text, msgId = Date.now()) {
+
+      function addBotMessage(text, msgId = Date.now(), saveToHistory = true) {
         const wrapper = document.createElement('div');
         wrapper.className = 'message-wrapper';
         wrapper.dataset.msgId = msgId;
+        
         const content = processCodeBlocks(text);
         const safeContent = content || escapeHtml(text).replace(/\n/g, '<br>');
+        
         wrapper.innerHTML = `
           <div class="avatar"><i class="fas fa-robot"></i></div>
           <div class="message bot">${safeContent}</div>
@@ -524,58 +665,95 @@
             <button class="regenerate-btn"><i class="fas fa-sync-alt"></i> Kirim Ulang</button>
           </div>
         `;
+        
         const regenBtn = wrapper.querySelector('.regenerate-btn');
         if (regenBtn) {
-          regenBtn.addEventListener('click', () => regenerateLastResponse());
+          regenBtn.addEventListener('click', () => {
+            const chat = chats.find(c => c.id === currentChatId);
+            if (!chat) return;
+            
+            const userMsg = getLast
+                        Message();
+            if (!userMsg) return;
+            
+            // Remove the last bot message
+            if (chat.messages.length > 0 && chat.messages[chat.messages.length - 1].sender === 'bot') {
+              chat.messages.pop();
+            }
+            
+            wrapper.remove();
+            sendPrompt(userMsg.text);
+          });
         }
+        
         chatContainer.appendChild(wrapper);
         addCopyButtons(wrapper);
+        
+        if (saveToHistory) {
+          saveMessage('bot', text, msgId);
+        }
+        
         appendMessageAndScroll();
       }
+
       function processCodeBlocks(text) {
         const codeRegex = /```(\w+)?\n([\s\S]*?)```/g;
         let content = '';
         let lastIndex = 0;
         let match;
+        
         while ((match = codeRegex.exec(text)) !== null) {
           if (match.index > lastIndex) {
             content += escapeHtml(text.slice(lastIndex, match.index)).replace(/\n/g, '<br>');
           }
+          
           const lang = match[1] || 'javascript';
           const rawCode = match[2].trim();
           let highlighted;
+          
           try {
             highlighted = Prism.highlight(rawCode, Prism.languages[lang] || Prism.languages.javascript, lang);
           } catch (e) {
             highlighted = escapeHtml(rawCode);
           }
+          
           content += `
             <div class="code-block">
               <pre><code class="language-${lang}">${highlighted}</code></pre>
               <button class="copy-btn">Copy</button>
               <span class="copy-feedback">Copied!</span>
             </div>`;
+          
           lastIndex = codeRegex.lastIndex;
         }
+        
         if (lastIndex < text.length) {
           content += escapeHtml(text.slice(lastIndex)).replace(/\n/g, '<br>');
         }
+        
         return content;
       }
+
       function addCopyButtons(container) {
         container.querySelectorAll('.copy-btn').forEach(btn => {
-          btn.onclick = async () => {
-            const code = btn.previousElementSibling.innerText;
-            await navigator.clipboard.writeText(code);
-            const feedback = btn.nextElementSibling;
-            feedback.style.opacity = '1';
-            setTimeout(() => feedback.style.opacity = '0', 1500);
-          };
+          btn.addEventListener('click', async () => {
+            const code = btn.previousElementSibling.textContent;
+            try {
+              await navigator.clipboard.writeText(code);
+              const feedback = btn.nextElementSibling;
+              feedback.style.opacity = '1';
+              setTimeout(() => feedback.style.opacity = '0', 1500);
+            } catch (err) {
+              alert('Gagal menyalin kode');
+            }
+          });
         });
       }
+
       function startEdit(wrapper) {
         const messageDiv = wrapper.querySelector('.message');
-        const originalText = messageDiv.textContent.trim();
+        const originalText = messageDiv.dataset.originalText || messageDiv.textContent.trim();
+        
         const textarea = document.createElement('textarea');
         textarea.value = originalText;
         textarea.style.width = '100%';
@@ -587,102 +765,132 @@
         textarea.style.color = 'var(--text)';
         textarea.style.fontSize = '1rem';
         textarea.style.lineHeight = '1.5';
+        textarea.style.fontFamily = 'inherit';
+
         const controls = document.createElement('div');
         controls.className = 'edit-controls';
         controls.innerHTML = `
           <button class="cancel">Batal</button>
-          <button class="save">Kirim Ulang</button>
+          <button class="save">Simpan & Kirim Ulang</button>
         `;
+
         messageDiv.innerHTML = '';
         messageDiv.appendChild(textarea);
         messageDiv.appendChild(controls);
         textarea.focus();
-        controls.querySelector('.cancel').onclick = () => {
-          const escapedOriginal = escapeHtml(originalText);
-          messageDiv.innerHTML = escapedOriginal;
-          messageDiv.dataset.originalText = escapedOriginal;
-        };
-        controls.querySelector('.save').onclick = () => {
+
+        controls.querySelector('.cancel').addEventListener('click', () => {
+          messageDiv.innerHTML = originalText;
+          messageDiv.dataset.originalText = originalText;
+        });
+
+        controls.querySelector('.save').addEventListener('click', () => {
           const newText = textarea.value.trim();
-          if (newText) {
-            const escapedNew = escapeHtml(newText);
-            messageDiv.innerHTML = escapedNew;
-            messageDiv.dataset.originalText = escapedNew;
-            const chat = chats.find(c => c.id === currentChatId);
-            const msg = chat.messages.find(m => m.id == parseInt(wrapper.dataset.msgId));
-            if (msg) msg.text = newText;
-            regenerateAfterEdit(wrapper);
-          } else {
-            const escapedOriginal = escapeHtml(originalText);
-            messageDiv.innerHTML = escapedOriginal;
-            messageDiv.dataset.originalText = escapedOriginal;
+          if (!newText) {
+            messageDiv.innerHTML = originalText;
+            messageDiv.dataset.originalText = originalText;
+            return;
           }
-        };
-      }
-      function regenerateAfterEdit(userWrapper) {
-        const nextBot = userWrapper.nextElementSibling;
-        if (nextBot && nextBot.classList.contains('message-wrapper') && !nextBot.classList.contains('user-wrapper')) {
-          nextBot.remove();
+          
+          const escapedNew = escapeHtml(newText);
+          messageDiv.innerHTML = escapedNew;
+          messageDiv.dataset.originalText = escapedNew;
+
           const chat = chats.find(c => c.id === currentChatId);
-          if (chat) {
-            chat.messages = chat.messages.filter(m => m.id != parseInt(nextBot.dataset.msgId));
+          const msg = chat.messages.find(m => m.id == parseInt(wrapper.dataset.msgId));
+          
+          if (msg) {
+            msg.text = newText;
+            saveChats();
+            regenerateAfterEdit(wrapper, newText);
           }
+        });
+      }
+
+      function regenerateAfterEdit(userWrapper, newPrompt) {
+        // Remove subsequent bot messages
+        let next = userWrapper.nextElementSibling;
+        while (next && next.classList.contains('message-wrapper') && !next.classList.contains('user-wrapper')) {
+          const nextId = parseInt(next.dataset.msgId);
+          const chat = chats.find(c => c.id === currentChatId);
+          
+          if (chat) {
+            chat.messages = chat.messages.filter(m => m.id !== nextId);
+          }
+          
+          const toRemove = next;
+          next = next.nextElementSibling;
+          toRemove.remove();
         }
-        const newPrompt = userWrapper.querySelector('.message').textContent.trim();
+        
+        // Send new prompt
         sendPrompt(newPrompt);
       }
-      function regenerateLastResponse() {
-        const lastUserPrompt = getLastUserPrompt();
-        if (!lastUserPrompt) return;
-        const chat = chats.find(c => c.id === currentChatId);
-        if (chat && chat.messages.length > 0 && chat.messages[chat.messages.length - 1].sender === 'bot') {
-          chat.messages.pop();
-        }
-        const lastMessage = chatContainer.lastElementChild;
-        if (lastMessage && !lastMessage.classList.contains('user-wrapper')) {
-          lastMessage.remove();
-        }
-        sendPrompt(lastUserPrompt);
-      }
+
       function renderHistory(searchTerm = '') {
         historyList.innerHTML = '';
+        
         chats.forEach(chat => {
           const hasMatch = !searchTerm ||
             chat.title.toLowerCase().includes(searchTerm) ||
             chat.messages.some(m => m.sender === 'user' && m.text.toLowerCase().includes(searchTerm));
+          
           if (!hasMatch) return;
+          
           const item = document.createElement('div');
           item.className = 'history-item' + (chat.id === currentChatId ? ' active' : '');
+          
           const title = document.createElement('div');
           title.className = 'history-title';
           title.textContent = chat.title || "Chat Baru";
+          
           const delBtn = document.createElement('button');
           delBtn.className = 'delete-btn';
           delBtn.innerHTML = '<i class="fas fa-trash"></i>';
-          delBtn.onclick = (e) => {
+          delBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             deleteChat(chat.id);
-          };
+          });
+          
           item.appendChild(title);
           item.appendChild(delBtn);
-          item.onclick = () => loadChat(chat.id);
+          
+          item.addEventListener('click', () => {
+            loadChat(chat.id);
+            if (window.innerWidth <= 1023) {
+              closeSidebar();
+            }
+          });
+          
           historyList.appendChild(item);
         });
       }
+
       searchInput.addEventListener('input', (e) => {
-        renderHistory(e.target.value.toLowerCase());
+        renderHistory(e.target.value.toLowerCase().trim());
       });
+
       function saveMessage(sender, text, msgId = Date.now()) {
         const chat = chats.find(c => c.id === currentChatId);
         if (!chat) return;
+        
         chat.messages.push({ id: msgId, sender, text });
+        
+        // Update chat title based on first user message
         if (sender === 'user' && chat.messages.filter(m => m.sender === 'user').length === 1) {
           chat.title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
         }
+        
         saveChats();
       }
+
       async function sendPrompt(promptText) {
-        if (!promptText || sendBtn.disabled) return;
+        if (!promptText || isSending) return;
+        
+        isSending = true;
+        sendBtn.disabled = true;
+        
+        // Add typing indicator
         const typing = document.createElement('div');
         typing.className = 'message-wrapper';
         typing.id = 'typing-indicator';
@@ -692,69 +900,120 @@
         `;
         chatContainer.appendChild(typing);
         appendMessageAndScroll();
+        
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+          
           const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: promptText }),
             signal: controller.signal
           });
+          
           clearTimeout(timeoutId);
-          const data = await res.json();
           typing.remove();
+          
           if (res.ok) {
+            const data = await res.json();
             const jawaban = data.result || data.message || "Maaf, tidak ada jawaban.";
             const msgId = Date.now();
             addBotMessage(jawaban, msgId);
-            saveMessage('bot', jawaban, msgId);
           } else {
-            addBotMessage("Server error: " + (data.error || data.message || res.status));
+            addBotMessage("Server error: " + (res.statusText || "Unknown error"));
           }
         } catch (err) {
           typing.remove();
+          
           if (err.name === 'AbortError') {
-            addBotMessage("Request timeout. Coba lagi.");
+            addBotMessage("Request timeout. Server mungkin sedang sibuk, coba lagi nanti.");
+          } else if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+            addBotMessage("Tidak dapat terhubung ke server AI. Periksa koneksi internet Anda.");
           } else {
-            addBotMessage("Server AI sedang down atau tidak dapat dijangkau. Coba lagi nanti.");
+            addBotMessage("Terjadi kesalahan: " + err.message);
           }
         } finally {
+          isSending = false;
           sendBtn.disabled = false;
           promptInput.focus();
         }
       }
-      async function kirimPesan() {
-        const text = promptInput.value.trim();
-        if (!text || sendBtn.disabled) return;
-        const msgId = Date.now();
-        addUserMessage(text, msgId);
-        saveMessage('user', text, msgId);
-        promptInput.value = '';
-        promptInput.style.height = 'auto';
-        sendBtn.disabled = true;
-        sendPrompt(text);
+
+      function appendMessageAndScroll() {
+        setTimeout(() => {
+          if (isNearBottom) {
+            scrollToBottom(true);
+          }
+        }, 100);
       }
-      promptInput.addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-      });
+
+      function adjustTextareaHeight() {
+        promptInput.style.height = 'auto';
+        promptInput.style.height = Math.min(promptInput.scrollHeight, 160) + 'px';
+        
+        // Adjust input area height
+        const inputArea = document.getElementById('input-area');
+        inputArea.style.minHeight = Math.min(promptInput.scrollHeight + 28, 188) + 'px';
+      }
+
+      // Event listeners
+      promptInput.addEventListener('input', adjustTextareaHeight);
+      
       promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
+        if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           kirimPesan();
         }
       });
-      sendBtn.onclick = kirimPesan;
-      newChatBtn.onclick = createNewChat();
-      exportCurrentBtn.onclick = exportCurrentChat;
-      exportAllBtn.onclick = exportAllChats;
-      importBtn.onclick = () => importInput.click();
-      importInput.onchange = importChats;
-      clearAllBtn.onclick = deleteAllChats;
-      if (chats.length === 0) createNewChat();
-      else loadChat(chats[0].id);
-      renderHistory();
+
+      function kirimPesan() {
+        const text = promptInput.value.trim();
+        if (!text || isSending) return;
+        
+        const msgId = Date.now();
+        addUserMessage(text, msgId);
+        
+        promptInput.value = '';
+        promptInput.style.height = 'auto';
+        adjustTextareaHeight();
+        
+        sendPrompt(text);
+      }
+
+      sendBtn.addEventListener('click', kirimPesan);
+      newChatBtn.addEventListener('click', createNewChat);
+
+      // Initialize
+      function init() {
+        setupSidebar();
+        
+        if (chats.length === 0) {
+          createNewChat();
+        } else {
+          loadChat(chats[0].id);
+        }
+        
+        renderHistory();
+        promptInput.focus();
+        
+        // Listen for window resize
+        window.addEventListener('resize', setupSidebar);
+        
+        // Auto-resize textarea on load
+        setTimeout(adjustTextareaHeight, 100);
+        
+        // Prevent default behavior for Enter key in textarea
+        promptInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey && window.innerWidth <= 768) {
+            e.preventDefault();
+            kirimPesan();
+          }
+        });
+      }
+
+      // Initialize the app
+      init();
     });
   </script>
 </body>
