@@ -182,16 +182,70 @@
       background: var(--primary); color: #000; transform: translateY(-3px) scale(1.03);
       box-shadow: 0 10px 25px rgba(0, 212, 170, 0.5);
     }
+    .edit-controls {
+      margin-top: 12px;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .edit-controls .cancel, 
     .edit-controls .save {
-      background: var(--primary); color: #000; padding: 12px 28px; border-radius: 30px; font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      font-size: 0.9rem;
     }
-    .edit-controls .save:hover { background: var(--primary-light); transform: translateY(-2px) scale(1.05); }
     .edit-controls .cancel {
-      background: transparent; color: var(--danger-soft); border: 1.5px solid var(--danger-soft);
-      padding: 12px 28px; border-radius: 30px; font-weight: 600;
+      background: transparent;
+      color: var(--danger-soft);
+      border: 1.5px solid var(--danger-soft);
     }
-    .edit-controls .cancel:hover { background: var(--danger-soft); color: #fff; transform: translateY(-2px) scale(1.05); }
-    .edit-controls { margin-top: 12px; display: flex; gap: 12px; justify-content: flex-end; }
+    .edit-controls .cancel:hover {
+      background: var(--danger-soft);
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+    }
+    .edit-controls .save {
+      background: var(--primary);
+      color: #000;
+      border: 1.5px solid var(--primary);
+    }
+    .edit-controls .save:hover {
+      background: var(--primary-light);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 212, 170, 0.3);
+    }
+    .edit-indicator {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.8rem;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 8px;
+      border-radius: 10px;
+    }
+    .message:hover .edit-indicator {
+      opacity: 1;
+    }
+    [data-theme="light"] .edit-indicator {
+      color: rgba(0, 0, 0, 0.5);
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .user .edit-indicator {
+      color: rgba(0, 0, 0, 0.5);
+      background: rgba(255, 255, 255, 0.3);
+    }
     .code-block {
       position: relative; background: #0a0f0f; border-radius: 16px; margin: 16px 0;
       overflow: hidden; border: 1px solid rgba(0, 212, 170, 0.2);
@@ -265,6 +319,15 @@
       #back-to-bottom { bottom: 90px; right: 15px; }
       #send-btn { padding: 0 20px; }
       #prompt { padding: 14px 16px; }
+      .edit-controls {
+        flex-direction: column;
+      }
+      
+      .edit-controls .cancel,
+      .edit-controls .save {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
 </head>
@@ -637,10 +700,24 @@
         const escapedText = escapeHtml(text);
         wrapper.innerHTML = `
           <div class="avatar user-avatar"><i class="fas fa-user"></i></div>
-          <div class="message user" data-original-text="${escapedText.replace(/"/g, '&quot;')}">${escapedText}</div>
+                    <div class="message user" data-original-text="${escapedText.replace(/"/g, '&quot;')}">
+            ${escapedText}
+            <div class="edit-indicator">
+              <i class="fas fa-edit"></i>
+            </div>
+          </div>
         `;
         
-        wrapper.querySelector('.message').addEventListener('click', () => startEdit(wrapper));
+        // Tambahkan event listener dengan delay untuk menghindari konflik
+        setTimeout(() => {
+          const messageDiv = wrapper.querySelector('.message');
+          messageDiv.addEventListener('click', (e) => {
+            if (!messageDiv.querySelector('textarea')) { // Cek apakah sudah dalam mode edit
+              startEdit(wrapper);
+            }
+          });
+        }, 100);
+        
         chatContainer.appendChild(wrapper);
         
         if (saveToHistory) {
@@ -672,8 +749,7 @@
             const chat = chats.find(c => c.id === currentChatId);
             if (!chat) return;
             
-            const userMsg = getLast
-                        Message();
+            const userMsg = getLastUserMessage();
             if (!userMsg) return;
             
             // Remove the last bot message
@@ -754,6 +830,9 @@
         const messageDiv = wrapper.querySelector('.message');
         const originalText = messageDiv.dataset.originalText || messageDiv.textContent.trim();
         
+        // Simpan state asli
+        const originalHTML = messageDiv.innerHTML;
+        
         const textarea = document.createElement('textarea');
         textarea.value = originalText;
         textarea.style.width = '100%';
@@ -766,29 +845,43 @@
         textarea.style.fontSize = '1rem';
         textarea.style.lineHeight = '1.5';
         textarea.style.fontFamily = 'inherit';
+        textarea.style.resize = 'vertical';
 
         const controls = document.createElement('div');
         controls.className = 'edit-controls';
         controls.innerHTML = `
-          <button class="cancel">Batal</button>
-          <button class="save">Simpan & Kirim Ulang</button>
+          <button class="cancel"><i class="fas fa-times"></i> Batal</button>
+          <button class="save"><i class="fas fa-check"></i> Simpan & Kirim Ulang</button>
         `;
 
         messageDiv.innerHTML = '';
         messageDiv.appendChild(textarea);
         messageDiv.appendChild(controls);
         textarea.focus();
+        textarea.select();
 
-        controls.querySelector('.cancel').addEventListener('click', () => {
-          messageDiv.innerHTML = originalText;
+        // Fungsi untuk keluar dari mode edit
+        function exitEditMode() {
+          messageDiv.innerHTML = originalHTML;
           messageDiv.dataset.originalText = originalText;
+          
+          // Hapus event listeners
+          document.removeEventListener('click', handleOutsideClick);
+          document.removeEventListener('keydown', handleEscapeKey);
+        }
+
+        // Event listener untuk tombol batal
+        controls.querySelector('.cancel').addEventListener('click', (e) => {
+          e.stopPropagation();
+          exitEditMode();
         });
 
-        controls.querySelector('.save').addEventListener('click', () => {
+        // Event listener untuk tombol save
+        controls.querySelector('.save').addEventListener('click', (e) => {
+          e.stopPropagation();
           const newText = textarea.value.trim();
           if (!newText) {
-            messageDiv.innerHTML = originalText;
-            messageDiv.dataset.originalText = originalText;
+            exitEditMode();
             return;
           }
           
@@ -804,6 +897,39 @@
             saveChats();
             regenerateAfterEdit(wrapper, newText);
           }
+          
+          // Hapus event listeners
+          document.removeEventListener('click', handleOutsideClick);
+          document.removeEventListener('keydown', handleEscapeKey);
+        });
+
+        // Event listener untuk klik di luar area edit
+        function handleOutsideClick(e) {
+          if (!messageDiv.contains(e.target) && !wrapper.contains(e.target)) {
+            exitEditMode();
+          }
+        }
+
+        // Event listener untuk tombol Escape
+        function handleEscapeKey(e) {
+          if (e.key === 'Escape') {
+            exitEditMode();
+          }
+        }
+
+        // Tambah event listener dengan delay untuk menghindari trigger langsung
+        setTimeout(() => {
+          document.addEventListener('click', handleOutsideClick);
+          document.addEventListener('keydown', handleEscapeKey);
+        }, 100);
+
+        // Hentikan propagation agar tidak trigger langsung
+        textarea.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+
+        controls.addEventListener('click', (e) => {
+          e.stopPropagation();
         });
       }
 
