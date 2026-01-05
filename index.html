@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-one-dark.min.css" rel="stylesheet" />
 
-  <!-- Open Graph -->
+  <!-- Open Graph Preview -->
   <meta property="og:title" content="Hildan AI - Chatbot Keren Indonesia" />
   <meta property="og:description" content="Chat apa aja sama Hildan AI! Santai, lucu, dan siap bantu. Coba yuk~" />
   <meta property="og:image" content="https://via.placeholder.com/1200x630/000000/00D4AA?text=Hildan+AI" />
@@ -60,6 +60,7 @@
       overflow: hidden;
       opacity: 0;
       animation: fadeInBody 1.2s ease-out forwards;
+      transition: background 0.4s, color 0.4s;
     }
 
     @keyframes fadeInBody { to { opacity: 1; } }
@@ -80,172 +81,823 @@
       border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     }
 
-    #menu-btn { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 8px; }
+    #menu-btn { background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: background 0.2s; }
     #menu-btn:hover { background: rgba(255, 255, 255, 0.1); }
 
     header h1 { font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 600; color: var(--primary); }
 
-    /* ... (CSS lain sama seperti sebelumnya, hemat tempat) ... */
+    #app-container { flex: 1; display: flex; overflow: hidden; position: relative; }
 
-    .regenerate-btn {
-      background: rgba(0, 212, 170, 0.2);
-      color: var(--primary);
-      border: 1.5px solid var(--primary);
-      padding: 10px 20px;
-      border-radius: 14px;
-      font-weight: 700;
-      box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
-      transition: all 0.4s ease;
+    #sidebar-overlay {
+      position: fixed; inset: 0; background: var(--overlay); opacity: 0; visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s; z-index: 998;
+    }
+    #sidebar-overlay.open { opacity: 1; visibility: visible; }
+
+    #sidebar {
+      width: 280px; max-width: 90vw; background: var(--sidebar-bg); backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border-accent); display: flex; flex-direction: column;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 999; position: relative;
     }
 
+    #sidebar-close {
+      display: none; position: absolute; top: 12px; right: 12px; background: none; border: none;
+      color: var(--text-muted); font-size: 1.8rem; cursor: pointer; padding: 8px; border-radius: 50%;
+      transition: background 0.2s;
+    }
+    #sidebar-close:hover { background: rgba(255, 255, 255, 0.1); }
+
+    #search-history { padding: 12px 16px 8px; }
+    #search-history input {
+      width: 100%; padding: 10px 14px; border-radius: 30px; border: 1px solid var(--border-accent);
+      background: rgba(255, 255, 255, 0.05); color: var(--text); outline: none;
+    }
+    #search-history input:focus { border-color: var(--primary); }
+
+    #new-chat-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 14px 20px; background: transparent; border: 1px solid var(--primary);
+      color: var(--primary); font-weight: 600; cursor: pointer; margin: 16px;
+      border-radius: 30px; transition: all 0.3s;
+    }
+    #new-chat-btn:hover { background: var(--active); transform: translateY(-2px); }
+
+    #settings-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 14px 20px; background: transparent; border: 1px solid var(--text-muted);
+      color: var(--text-muted); font-weight: 600; cursor: pointer; margin: 8px 16px 16px;
+      border-radius: 30px; transition: all 0.3s;
+    }
+    #settings-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--active); }
+
+    .settings-menu { display: none; flex-direction: column; padding: 0 16px 16px; gap: 8px; }
+    .settings-menu.open { display: flex; }
+
+    .settings-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 12px 16px; background: rgba(255, 255, 255, 0.05); border-radius: 12px;
+      cursor: pointer; font-size: 0.95rem; transition: 0.3s;
+    }
+    .settings-item:hover { background: var(--active); }
+
+    .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(22px); }
+
+    .settings-item.danger { color: var(--danger); }
+    .settings-item.danger:hover { background: rgba(231, 76, 60, 0.15); }
+
+    #history-list { flex: 1; overflow-y: auto; padding: 0 16px; }
+
+    .history-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-radius: 12px; margin-bottom: 8px; cursor: pointer;
+      transition: 0.3s; font-size: 0.95rem;
+    }
+    .history-item:hover { background: rgba(255, 255, 255, 0.08); }
+    .history-item.active { background: var(--active); border-left: 4px solid var(--primary); }
+
+    .history-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .delete-btn { color: var(--text-muted); font-size: 1.1rem; padding: 8px; border-radius: 8px; opacity: 0; transition: opacity 0.2s, color 0.2s; }
+    .history-item:hover .delete-btn { opacity: 1; }
+    .delete-btn:hover { color: var(--danger); background: rgba(231, 76, 60, 0.15); }
+
+    #main { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
+
+    #chat-container {
+      flex: 1; overflow-y: auto; padding: 2rem 1.5rem; display: flex; flex-direction: column;
+      gap: 1.5rem; scroll-behavior: smooth; position: relative;
+    }
+
+    .message-wrapper {
+      position: relative; display: flex; align-items: flex-start; gap: 12px; max-width: 80%;
+    }
+    .message-wrapper.user-wrapper { align-self: flex-end; flex-direction: row-reverse; }
+
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #000;
+      display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+    }
+    .user-avatar { background: var(--primary-dark); color: #fff; }
+
+    .message {
+      flex: 1; padding: 16px 20px; border-radius: 24px; line-height: 1.6; word-wrap: break-word;
+      white-space: pre-wrap; animation: fadeInMessage 0.6s ease-out; font-size: clamp(0.95rem, 2vw, 1.05rem);
+      opacity: 0; animation-fill-mode: forwards; position: relative;
+    }
+    @keyframes fadeInMessage { to { opacity: 1; transform: translateY(0); } from { opacity: 0; transform: translateY(20px); } }
+
+    .user { align-self: flex-end; background: var(--primary); color: #000000; border-bottom-right-radius: 8px; }
+    .bot { align-self: flex-start; background: var(--card-bg); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08); border-bottom-left-radius: 8px; color: var(--text); }
+
+    .message-actions { position: absolute; bottom: -30px; right: 0; opacity: 0; transition: opacity 0.3s; }
+    .message-wrapper:hover .message-actions { opacity: 1; }
+
+    .regenerate-btn {
+      background: rgba(0, 212, 170, 0.2); color: var(--primary); border: 1.5px solid var(--primary);
+      padding: 10px 20px; border-radius: 14px; font-weight: 700;
+      box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3); transition: all 0.4s ease;
+    }
     .regenerate-btn:hover {
-      background: var(--primary);
-      color: #000;
-      transform: translateY(-3px) scale(1.03);
+      background: var(--primary); color: #000; transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 10px 25px rgba(0, 212, 170, 0.5);
     }
 
     .edit-controls .save {
-      background: var(--primary);
-      color: #000;
-      padding: 12px 28px;
-      border-radius: 30px;
-      font-weight: 600;
+      background: var(--primary); color: #000; padding: 12px 28px; border-radius: 30px; font-weight: 600;
     }
-
-    .edit-controls .save:hover {
-      background: var(--primary-light);
-      transform: translateY(-2px) scale(1.05);
-    }
-
+    .edit-controls .save:hover { background: var(--primary-light); transform: translateY(-2px) scale(1.05); }
     .edit-controls .cancel {
-      background: transparent;
-      color: var(--danger-soft);
-      border: 1.5px solid var(--danger-soft);
-      padding: 12px 28px;
-      border-radius: 30px;
-      font-weight: 600;
+      background: transparent; color: var(--danger-soft); border: 1.5px solid var(--danger-soft);
+      padding: 12px 28px; border-radius: 30px; font-weight: 600;
+    }
+    .edit-controls .cancel:hover { background: var(--danger-soft); color: #fff; transform: translateY(-2px) scale(1.05); }
+    .edit-controls { margin-top: 12px; display: flex; gap: 12px; justify-content: flex-end; }
+
+    .code-block {
+      position: relative; background: #0a0f0f; border-radius: 16px; margin: 16px 0;
+      overflow: hidden; border: 1px solid rgba(0, 212, 170, 0.2);
+    }
+    .code-block pre { margin: 0 !important; padding: 20px !important; overflow-x: auto; }
+    .code-block code { font-family: 'Fira Code', monospace !important; font-size: 0.95rem; line-height: 1.5; }
+
+    .copy-btn {
+      position: absolute; top: 12px; right: 12px; background: rgba(0, 212, 170, 0.2);
+      color: var(--primary); border: none; padding: 8px 14px; border-radius: 8px;
+      cursor: pointer; font-size: 0.85rem; font-weight: bold;
+    }
+    .copy-btn:hover { background: var(--primary); color: #000; }
+
+    .copy-feedback {
+      position: absolute; top: 12px; right: 90px; background: var(--primary); color: #000;
+      padding: 8px 14px; border-radius: 8px; opacity: 0; transition: opacity 0.3s; font-weight: bold;
     }
 
-    .edit-controls .cancel:hover {
-      background: var(--danger-soft);
-      color: #fff;
+    .typing { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+    .typing span { width: 8px; height: 8px; background: var(--primary-light); border-radius: 50%; animation: typingDots 1.4s infinite ease-in-out; }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingDots { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-10px); opacity: 1; } }
+
+    #input-area {
+      display: flex; padding: 1rem; background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(20px);
+      gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    [data-theme="light"] #input-area { background: rgba(255, 255, 255, 0.9); border-top: 1px solid rgba(0, 0, 0, 0.08); }
+
+    #prompt {
+      flex: 1; padding: 16px 20px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 30px;
+      background: rgba(25, 30, 40, 0.8); color: #fff; font-size: clamp(0.95rem, 2vw, 1rem);
+      outline: none; transition: 0.3s; resize: none; overflow-y: auto; min-height: 56px; max-height: 160px; line-height: 1.5;
+    }
+    [data-theme="light"] #prompt { background: rgba(240, 245, 250, 0.9); color: #000; border-color: rgba(0, 0, 0, 0.15); }
+    #prompt:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3); }
+
+    #send-btn {
+      padding: 0 24px; background: var(--primary); color: #000; border: none; border-radius: 30px;
+      font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s;
+    }
+    #send-btn:hover { background: var(--primary-dark); transform: scale(1.05); }
+
+    #back-to-bottom {
+      position: fixed; bottom: 100px; right: 20px; background: rgba(0, 212, 170, 0.9); color: #000;
+      border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 1.5rem; cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 100;
+    }
+    #back-to-bottom.show { opacity: 1; visibility: visible; }
+    #back-to-bottom:hover { background: var(--primary); transform: scale(1.1); }
+
+    footer {
+      text-align: center; padding: 0.8rem; font-size: 0.8rem; color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.8);
+    }
+    [data-theme="light"] footer { background: rgba(255, 255, 255, 0.8); }
+    footer a { color: var(--primary); text-decoration: none; }
+
+    #import-input { display: none; }
+
+    @media (max-width: 1023px) {
+      #menu-btn { display: block; }
+      #sidebar { position: fixed; left: 0; top: 0; height: 100%; transform: translateX(-100%); box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5); }
+      #sidebar.open { transform: translateX(0); }
+      #sidebar-close { display: block; }
     }
 
-    .edit-controls {
-      margin-top: 12px;
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
+    @media (min-width: 1024px) {
+      #menu-btn { display: none; }
+      #sidebar { transform: translateX(0) !important; position: static; box-shadow: none; }
+      #sidebar-close, #sidebar-overlay { display: none !important; }
+      .message-wrapper { max-width: 75%; }
+      #chat-container { padding: 2.5rem 2rem; }
     }
 
-    /* ... sisa CSS sama ... */
+    @media (max-width: 768px) {
+      .message-wrapper { max-width: 92%; }
+      #chat-container { padding: 1.5rem 1rem; }
+      #back-to-bottom { bottom: 90px; right: 15px; }
+    }
   </style>
 </head>
 
 <body>
-  <!-- HTML structure sama seperti yang kamu kasih -->
+  <header>
+    <button id="menu-btn"><i class="fas fa-bars"></i></button>
+    <h1>HILDAN AI</h1>
+    <div></div>
+  </header>
+
+  <div id="app-container">
+    <div id="sidebar-overlay"></div>
+
+    <div id="sidebar">
+      <button id="sidebar-close">×</button>
+      <div id="new-chat-btn"><i class="fas fa-plus"></i> Chat Baru</div>
+      <div id="search-history">
+        <input type="text" id="search-input" placeholder="Cari chat...">
+      </div>
+      <div id="history-list"></div>
+      <div id="settings-btn"><i class="fas fa-cog"></i> Settings</div>
+      <div class="settings-menu" id="settings-menu">
+        <div class="settings-item theme-toggle">
+          <span><i class="fas fa-moon"></i> Mode Gelap</span>
+          <label class="switch">
+            <input type="checkbox" id="theme-switch" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="settings-item" id="export-current"><i class="fas fa-file-export"></i> Export Chat Ini (JSON)</div>
+        <div class="settings-item" id="export-all"><i class="fas fa-file-export"></i> Export Semua Chat (JSON)</div>
+        <div class="settings-item" id="import-chats"><i class="fas fa-file-import"></i> Import Chat (JSON)</div>
+        <div class="settings-item danger" id="clear-all"><i class="fas fa-trash-alt"></i> Hapus Semua Chat</div>
+      </div>
+    </div>
+
+    <div id="main">
+      <div id="chat-container"></div>
+      <button id="back-to-bottom"><i class="fas fa-arrow-down"></i></button>
+      <div id="input-area">
+        <textarea id="prompt" placeholder="Kalo ada apa ceritain aja..." autocomplete="off" rows="1"></textarea>
+        <button id="send-btn"><i class="fas fa-paper-plane"></i> Kirim</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="import-input" accept=".json" />
+
+  <footer>
+    Hildan AI • by <a href="https://github.com/hildan-anugrah" target="_blank">hildan-anugrah</a>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
   <script>
-    // ... init dan function lain sama ...
+    document.addEventListener('DOMContentLoaded', () => {
+      const chatContainer = document.getElementById('chat-container');
+      const promptInput = document.getElementById('prompt');
+      const sendBtn = document.getElementById('send-btn');
+      const newChatBtn = document.getElementById('new-chat-btn');
+      const historyList = document.getElementById('history-list');
+      const searchInput = document.getElementById('search-input');
+      const sidebar = document.getElementById('sidebar');
+      const menuBtn = document.getElementById('menu-btn');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const overlay = document.getElementById('sidebar-overlay');
+      const backToBottomBtn = document.getElementById('back-to-bottom');
+      const settingsBtn = document.getElementById('settings-btn');
+      const settingsMenu = document.getElementById('settings-menu');
+      const themeSwitch = document.getElementById('theme-switch');
+      const exportCurrentBtn = document.getElementById('export-current');
+      const exportAllBtn = document.getElementById('export-all');
+      const importBtn = document.getElementById('import-chats');
+      const clearAllBtn = document.getElementById('clear-all');
+      const importInput = document.getElementById('import-input');
 
-    function startEdit(wrapper) {
-      const messageDiv = wrapper.querySelector('.message');
-      const originalText = messageDiv.dataset.originalText || messageDiv.textContent.trim();
+      const STORAGE_KEY = 'hildan_ai_chats';
+      const THEME_KEY = 'hildan_ai_theme';
+      const MAX_CHATS = 50;
+      const SCROLL_THRESHOLD = 150;
 
-      const textarea = document.createElement('textarea');
-      textarea.value = originalText;
-      textarea.style.width = '100%';
-      textarea.style.minHeight = '80px';
-      textarea.style.padding = '12px';
-      textarea.style.borderRadius = '12px';
-      textarea.style.border = '1px solid var(--primary)';
-      textarea.style.background = 'var(--card-bg)';
-      textarea.style.color = 'var(--text)';
-      textarea.style.fontSize = '1rem';
-      textarea.style.lineHeight = '1.5';
+      let chats = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      let currentChatId = null;
+      let isNearBottom = true;
 
-      const controls = document.createElement('div');
-      controls.className = 'edit-controls';
-      controls.innerHTML = `
-        <button class="cancel">Batal</button>
-        <button class="save">Kirim Ulang</button>
-      `;
+      const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+      document.body.dataset.theme = savedTheme;
+      themeSwitch.checked = savedTheme === 'dark';
 
-      messageDiv.innerHTML = '';
-      messageDiv.appendChild(textarea);
-      messageDiv.appendChild(controls);
+      themeSwitch.addEventListener('change', () => {
+        const newTheme = themeSwitch.checked ? 'dark' : 'light';
+        document.body.dataset.theme = newTheme;
+        localStorage.setItem(THEME_KEY, newTheme);
+      });
 
-      textarea.focus();
+      function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('open');
+      }
 
-      controls.querySelector('.cancel').onclick = () => {
-        messageDiv.innerHTML = originalText;
-        messageDiv.dataset.originalText = originalText;
-      };
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+      }
 
-      controls.querySelector('.save').onclick = () => {
-        const newText = textarea.value.trim();
-        if (newText) {
-          const escaped = escapeHtml(newText);
-          messageDiv.innerHTML = escaped;
-          messageDiv.dataset.originalText = escaped;
+      settingsBtn.onclick = () => settingsMenu.classList.toggle('open');
 
-          const chat = chats.find(c => c.id === currentChatId);
-          const msg = chat.messages.find(m => m.id == parseInt(wrapper.dataset.msgId));
-          if (msg) msg.text = newText;
+      if (window.innerWidth <= 1023) {
+        menuBtn.onclick = toggleSidebar;
+        sidebarClose.onclick = closeSidebar;
+        overlay.onclick = closeSidebar;
+      }
 
-          regenerateAfterEdit(wrapper);
+      function checkScrollPosition() {
+        const scrollTop = chatContainer.scrollTop;
+        const scrollHeight = chatContainer.scrollHeight;
+        const clientHeight = chatContainer.clientHeight;
+
+        if (scrollHeight - scrollTop - clientHeight < SCROLL_THRESHOLD) {
+          isNearBottom = true;
+          backToBottomBtn.classList.remove('show');
         } else {
+          isNearBottom = false;
+          backToBottomBtn.classList.add('show');
+        }
+      }
+
+      function scrollToBottom(smooth = true) {
+        if (smooth) {
+          chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        } else {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      }
+
+      function appendMessageAndScroll() {
+        if (isNearBottom) {
+          setTimeout(() => scrollToBottom(true), 100);
+        }
+      }
+
+      chatContainer.addEventListener('scroll', checkScrollPosition);
+      backToBottomBtn.onclick = () => scrollToBottom(true);
+
+      function saveChats() {
+        if (chats.length > MAX_CHATS) chats = chats.slice(0, MAX_CHATS);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+        renderHistory();
+      }
+
+      function createNewChat() {
+        const newChat = { id: Date.now(), title: "Chat Baru", messages: [] };
+        chats.unshift(newChat);
+        saveChats();
+        loadChat(newChat.id);
+      }
+
+      function deleteChat(id) {
+        if (!confirm("Hapus chat ini?")) return;
+        chats = chats.filter(c => c.id !== id);
+        if (currentChatId === id) {
+          currentChatId = null;
+          chatContainer.innerHTML = '';
+          if (chats.length > 0) loadChat(chats[0].id);
+          else createNewChat();
+        }
+        saveChats();
+      }
+
+      function deleteAllChats() {
+        if (!confirm("Hapus SEMUA chat? Tindakan ini tidak bisa dibatalkan.")) return;
+        chats = [];
+        localStorage.removeItem(STORAGE_KEY);
+        currentChatId = null;
+        chatContainer.innerHTML = '';
+        createNewChat();
+      }
+
+      function exportCurrentChat() {
+        const chat = chats.find(c => c.id === currentChatId);
+        if (!chat) return;
+
+        const data = JSON.stringify(chat, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `hildan-ai-chat-${chat.title?.replace(/[^a-z0-9]/gi, '-') || 'baru'}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function exportAllChats() {
+        if (chats.length === 0) {
+          alert("Belum ada chat untuk diexport.");
+          return;
+        }
+
+        const data = JSON.stringify(chats, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'hildan-ai-all-chats.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function importChats(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const imported = JSON.parse(e.target.result);
+
+            if (Array.isArray(imported)) {
+              if (!confirm(`Import ${imported.length} chat? Ini akan menggantikan semua chat saat ini.`)) return;
+              chats = imported;
+              currentChatId = chats[0]?.id || null;
+            } else {
+              imported.id = Date.now();
+              chats.unshift(imported);
+              currentChatId = imported.id;
+            }
+
+            saveChats();
+            loadChat(currentChatId || chats[0].id);
+            alert("Import berhasil!");
+          } catch (err) {
+            alert("File JSON tidak valid.");
+          }
+        };
+        reader.readAsText(file);
+        importInput.value = '';
+      }
+
+      function getLastUserPrompt() {
+        const chat = chats.find(c => c.id === currentChatId);
+        if (!chat) return '';
+        for (let i = chat.messages.length - 1; i >= 0; i--) {
+          if (chat.messages[i].sender === 'user') return chat.messages[i].text;
+        }
+        return '';
+      }
+
+      function loadChat(id) {
+        currentChatId = id;
+        const chat = chats.find(c => c.id === id);
+        if (!chat) return;
+
+        chatContainer.innerHTML = '';
+
+        if (chat.messages.length === 0) {
+          addGreetingMessage();
+        } else {
+          chat.messages.forEach(msg => {
+            if (msg.sender === 'user') addUserMessage(msg.text, msg.id);
+            else addBotMessage(msg.text, msg.id);
+          });
+        }
+
+        renderHistory();
+        promptInput.focus();
+        scrollToBottom(false);
+        checkScrollPosition();
+
+        if (window.innerWidth <= 1023) closeSidebar();
+      }
+
+      function addGreetingMessage() {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message-wrapper';
+        wrapper.innerHTML = `
+          <div class="avatar"><i class="fas fa-robot"></i></div>
+          <div class="message bot">
+            Halo, gue Hildan AI. Cerita apa aja, gue siap dengerin dan bantu jawab.
+          </div>
+        `;
+        chatContainer.appendChild(wrapper);
+      }
+
+      function addUserMessage(text, msgId = Date.now()) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message-wrapper user-wrapper';
+        wrapper.dataset.msgId = msgId;
+
+        const escapedText = escapeHtml(text);
+        wrapper.innerHTML = `
+          <div class="avatar user-avatar"><i class="fas fa-user"></i></div>
+          <div class="message user" data-original-text="\( {escapedText}"> \){escapedText}</div>
+        `;
+
+        wrapper.querySelector('.message').addEventListener('click', () => startEdit(wrapper));
+        chatContainer.appendChild(wrapper);
+        appendMessageAndScroll();
+      }
+
+      function addBotMessage(text, msgId = Date.now()) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message-wrapper';
+        wrapper.dataset.msgId = msgId;
+
+        const content = processCodeBlocks(text);
+
+        wrapper.innerHTML = `
+          <div class="avatar"><i class="fas fa-robot"></i></div>
+          <div class="message bot">${content || escapeHtml(text).replace(/\n/g, '<br>')}</div>
+          <div class="message-actions">
+            <button class="regenerate-btn"><i class="fas fa-sync-alt"></i> Kirim Ulang</button>
+          </div>
+        `;
+
+        wrapper.querySelector('.regenerate-btn').addEventListener('click', () => regenerateLastResponse());
+        addCopyButtons(wrapper);
+        chatContainer.appendChild(wrapper);
+        appendMessageAndScroll();
+      }
+
+      function processCodeBlocks(text) {
+        const codeRegex = /```(\w+)?\n([\s\S]*?)```/g;
+        let content = '';
+        let lastIndex = 0;
+        let match;
+
+        while ((match = codeRegex.exec(text)) !== null) {
+          if (match.index > lastIndex) {
+            content += escapeHtml(text.slice(lastIndex, match.index)).replace(/\n/g, '<br>');
+          }
+
+          const lang = match[1] || 'javascript';
+          const rawCode = match[2].trim();
+          let highlighted;
+          try {
+            highlighted = Prism.highlight(rawCode, Prism.languages[lang] || Prism.languages.javascript, lang);
+          } catch (e) {
+            highlighted = escapeHtml(rawCode);
+          }
+
+          content += `
+            <div class="code-block">
+                <pre><code class="language-\( {lang}"> \){highlighted}</code></pre>
+                <button class="copy-btn">Copy</button>
+                <span class="copy-feedback">Copied!</span>
+            </div>`;
+
+          lastIndex = codeRegex.lastIndex;
+        }
+
+        if (lastIndex < text.length) {
+          content += escapeHtml(text.slice(lastIndex)).replace(/\n/g, '<br>');
+        }
+
+        return content;
+      }
+
+      function addCopyButtons(container) {
+        container.querySelectorAll('.copy-btn').forEach(btn => {
+          btn.onclick = async () => {
+            const code = btn.previousElementSibling.innerText;
+            await navigator.clipboard.writeText(code);
+            const feedback = btn.nextElementSibling;
+            feedback.style.opacity = '1';
+            setTimeout(() => feedback.style.opacity = '0', 1500);
+          };
+        });
+      }
+
+      function startEdit(wrapper) {
+        const messageDiv = wrapper.querySelector('.message');
+        const originalText = messageDiv.dataset.originalText || messageDiv.textContent.trim();
+
+        const textarea = document.createElement('textarea');
+        textarea.value = originalText;
+        textarea.style.width = '100%';
+        textarea.style.minHeight = '80px';
+        textarea.style.padding = '12px';
+        textarea.style.borderRadius = '12px';
+        textarea.style.border = '1px solid var(--primary)';
+        textarea.style.background = 'var(--card-bg)';
+        textarea.style.color = 'var(--text)';
+        textarea.style.fontSize = '1rem';
+        textarea.style.lineHeight = '1.5';
+
+        const controls = document.createElement('div');
+        controls.className = 'edit-controls';
+        controls.innerHTML = `
+          <button class="cancel">Batal</button>
+          <button class="save">Kirim Ulang</button>
+        `;
+
+        messageDiv.innerHTML = '';
+        messageDiv.appendChild(textarea);
+        messageDiv.appendChild(controls);
+
+        textarea.focus();
+
+        controls.querySelector('.cancel').onclick = () => {
           messageDiv.innerHTML = originalText;
           messageDiv.dataset.originalText = originalText;
-        }
-      };
-    }
+        };
 
-    // ... sisa script sama seperti kode kamu yang sudah benar ...
+        controls.querySelector('.save').onclick = () => {
+          const newText = textarea.value.trim();
+          if (newText) {
+            const escaped = escapeHtml(newText);
+            messageDiv.innerHTML = escaped;
+            messageDiv.dataset.originalText = escaped;
 
-    async function sendPrompt(promptText) {
-      if (!promptText || sendBtn.disabled) return;
+            const chat = chats.find(c => c.id === currentChatId);
+            const msg = chat.messages.find(m => m.id == parseInt(wrapper.dataset.msgId));
+            if (msg) msg.text = newText;
 
-      const typing = document.createElement('div');
-      typing.className = 'message-wrapper';
-      typing.id = 'typing-indicator';
-      typing.innerHTML = `
-        <div class="avatar"><i class="fas fa-robot"></i></div>
-        <div class="message bot typing">Sedang mengetik... <span></span><span></span><span></span></div>
-      `;
-      chatContainer.appendChild(typing);
-      appendMessageAndScroll();
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-        const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: promptText }),
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-        const data = await res.json();
-        typing.remove();
-
-        if (res.ok) {
-          const jawaban = data.result || data.message || "Maaf, tidak ada jawaban.";
-          addBotMessage(jawaban);
-          saveMessage('bot', jawaban);
-        } else {
-          addBotMessage("Error server: " + (data.error || res.status));
-        }
-      } catch (err) {
-        typing.remove();
-        addBotMessage("Server down atau timeout. Coba lagi nanti.");
-      } finally {
-        sendBtn.disabled = false;
-        promptInput.focus();
+            regenerateAfterEdit(wrapper);
+          } else {
+            messageDiv.innerHTML = originalText;
+            messageDiv.dataset.originalText = originalText;
+          }
+        };
       }
-    }
+
+      function regenerateAfterEdit(userWrapper) {
+        const nextBot = userWrapper.nextElementSibling;
+        if (nextBot && nextBot.classList.contains('message-wrapper') && !nextBot.classList.contains('user-wrapper')) {
+          nextBot.remove();
+          const chat = chats.find(c => c.id === currentChatId);
+          if (chat) {
+            chat.messages = chat.messages.filter(m => m.id != parseInt(nextBot.dataset.msgId));
+          }
+        }
+
+        const newPrompt = userWrapper.querySelector('.message').textContent.trim();
+        sendPrompt(newPrompt);
+      }
+
+      function regenerateLastResponse() {
+        const lastUserPrompt = getLastUserPrompt();
+        if (!lastUserPrompt) return;
+
+        const chat = chats.find(c => c.id === currentChatId);
+        if (chat && chat.messages.length > 0 && chat.messages[chat.messages.length - 1].sender === 'bot') {
+          chat.messages.pop();
+        }
+
+        const lastMessage = chatContainer.lastElementChild;
+        if (lastMessage && !lastMessage.classList.contains('user-wrapper')) {
+          lastMessage.remove();
+        }
+
+        sendPrompt(lastUserPrompt);
+      }
+
+      function renderHistory(searchTerm = '') {
+        historyList.innerHTML = '';
+        chats.forEach(chat => {
+          const hasMatch = !searchTerm ||
+            chat.title.toLowerCase().includes(searchTerm) ||
+            chat.messages.some(m => m.sender === 'user' && m.text.toLowerCase().includes(searchTerm));
+
+          if (!hasMatch) return;
+
+          const item = document.createElement('div');
+          item.className = 'history-item' + (chat.id === currentChatId ? ' active' : '');
+
+          const title = document.createElement('div');
+          title.className = 'history-title';
+          title.textContent = chat.title || "Chat Baru";
+
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-btn';
+          delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteChat(chat.id);
+          };
+
+          item.appendChild(title);
+          item.appendChild(delBtn);
+          item.onclick = () => loadChat(chat.id);
+
+          historyList.appendChild(item);
+        });
+      }
+
+      searchInput.addEventListener('input', (e) => {
+        renderHistory(e.target.value.toLowerCase());
+      });
+
+      function saveMessage(sender, text, msgId = Date.now()) {
+        const chat = chats.find(c => c.id === currentChatId);
+        if (chat) {
+          chat.messages.push({ id: msgId, sender, text });
+          if (sender === 'user' && chat.messages.filter(m => m.sender === 'user').length === 1) {
+            chat.title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
+          }
+          saveChats();
+        }
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      async function sendPrompt(promptText) {
+        if (!promptText || sendBtn.disabled) return;
+
+        const typing = document.createElement('div');
+        typing.className = 'message-wrapper';
+        typing.id = 'typing-indicator';
+        typing.innerHTML = `
+          <div class="avatar"><i class="fas fa-robot"></i></div>
+          <div class="message bot typing">Sedang mengetik... <span></span><span></span><span></span></div>
+        `;
+        chatContainer.appendChild(typing);
+        appendMessageAndScroll();
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+          const res = await fetch('https://back-ai-delta.vercel.app/generate-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: promptText }),
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          const data = await res.json();
+          typing.remove();
+
+          if (res.ok) {
+            const jawaban = data.result || data.message || "Maaf, tidak ada jawaban.";
+            const msgId = Date.now();
+            addBotMessage(jawaban, msgId);
+            saveMessage('bot', jawaban, msgId);
+          } else {
+            addBotMessage("Server error: " + (data.error || data.message || res.status));
+          }
+        } catch (err) {
+          typing.remove();
+          if (err.name === 'AbortError') {
+            addBotMessage("Request timeout. Coba lagi.");
+          } else {
+            addBotMessage("Server AI sedang down atau tidak dapat dijangkau. Coba lagi nanti.");
+          }
+        } finally {
+          sendBtn.disabled = false;
+          promptInput.focus();
+        }
+      }
+
+      async function kirimPesan() {
+        const text = promptInput.value.trim();
+        if (!text || sendBtn.disabled) return;
+
+        const msgId = Date.now();
+        addUserMessage(text, msgId);
+        saveMessage('user', text, msgId);
+
+        promptInput.value = '';
+        promptInput.style.height = 'auto';
+        sendBtn.disabled = true;
+
+        sendPrompt(text);
+      }
+
+      promptInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+
+      promptInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
+          e.preventDefault();
+          kirimPesan();
+        }
+      });
+
+      sendBtn.onclick = kirimPesan;
+      newChatBtn.onclick = createNewChat;
+      exportCurrentBtn.onclick = exportCurrentChat;
+      exportAllBtn.onclick = exportAllChats;
+      importBtn.onclick = () => importInput.click();
+      importInput.onchange = importChats;
+      clearAllBtn.onclick = deleteAllChats;
+
+      if (chats.length === 0) createNewChat();
+      else loadChat(chats[0].id);
+
+      renderHistory();
+    });
   </script>
 </body>
 
